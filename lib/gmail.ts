@@ -30,7 +30,7 @@ function dayFrom(internalDate?: string) {
 }
 
 export async function fetchGmailSchedule(accessToken: string): Promise<ScheduleEvent[]> {
-  const list = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=newer_than%3A30d", { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+  const list = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=in%3Ainbox%20newer_than%3A30d", { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
   if (!list.ok) throw new Error("Unable to list Gmail messages");
   const { messages = [] } = await list.json() as { messages?: Array<{ id: string }> };
   const details = await Promise.all(messages.slice(0, 25).map(async ({ id }) => {
