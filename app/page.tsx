@@ -24,16 +24,16 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
     if (error) setToast("We couldn't connect Gmail. Please try again.");
-    if (params.get("connected") !== "1") return;
-
-    fetch("/api/schedule")
+    const from = new Date();
+    const to = new Date(from.getTime() + 60 * 24 * 60 * 60 * 1000);
+    fetch(`/api/events?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`)
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then(({ events: foundEvents }) => {
         setEvents(foundEvents);
         setView("dashboard");
-        setToast(foundEvents.length ? `Gmail connected — ${foundEvents.length} schedule details found` : "Gmail connected — no schedule details found yet");
+        if (params.get("connected") === "1") setToast(foundEvents.length ? `Gmail connected — ${foundEvents.length} events found` : "Gmail connected — ready to sync");
       })
-      .catch(() => setToast("Your Gmail connection finished, but the schedule could not be loaded."));
+      .catch(() => { /* An unauthenticated visitor sees the connection page. */ });
   }, []);
 
   const notify = (message: string) => {
