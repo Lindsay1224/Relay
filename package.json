@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "secrets:check": "bash scripts/check-secrets.sh",
+    "build": "npm run secrets:check && next build"
   },
   "dependencies": {
     "next": "15.5.11",

@@ -11,7 +11,7 @@ env:
   - variable: RELAY_APP_URL
     value: https://my-web-app--relay-family-schedule.us-east4.hosted.app
   - variable: GOOGLE_OAUTH_CLIENT_ID
-    value: 74124672196-20h7ss1fjgla2thuo7m46amj5dld69fb.apps.googleusercontent.com
+    secret: relay-google-oauth-client-id
   - variable: FIREBASE_WEB_API_KEY
     secret: relay-firebase-web-api-key
   - variable: GOOGLE_OAUTH_CLIENT_SECRET
