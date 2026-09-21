@@ -55,7 +55,7 @@ export async function setDocument(path: string, value: Record<string, unknown>, 
     method: "PATCH", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ fields: firestoreFields(value) }), cache: "no-store",
   });
-  if (!response.ok && !(merge && response.status === 409)) throw new Error("Firestore write failed");
+  if (!response.ok && !(merge && response.status === 409)) throw new Error(`Firestore write failed (${response.status})`);
 }
 
 export async function deleteDocument(path: string) {
