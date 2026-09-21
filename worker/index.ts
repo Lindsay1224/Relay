@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { handleTask } from "./src/worker";
+import { handleTask } from "./src/worker.js";
 
 const port = Number(process.env.PORT ?? 8080);
 createServer(async (request, response) => {
