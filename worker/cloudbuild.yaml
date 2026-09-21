@@ -5,7 +5,7 @@ steps:
       - -f
       - worker/Dockerfile
       - -t
-      - us-east4-docker.pkg.dev/relay-family-schedule/relay-images/relay-extraction-worker:20260921-4
+      - us-east4-docker.pkg.dev/relay-family-schedule/relay-images/relay-extraction-worker:20260921-5
       - .
 images:
-  - us-east4-docker.pkg.dev/relay-family-schedule/relay-images/relay-extraction-worker:20260921-4
+  - us-east4-docker.pkg.dev/relay-family-schedule/relay-images/relay-extraction-worker:20260921-5

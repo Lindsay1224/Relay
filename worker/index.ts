@@ -8,6 +8,9 @@ createServer(async (request, response) => {
   request.on("data", (chunk) => { body += chunk; });
   request.on("end", async () => {
     try { await handleTask(JSON.parse(body)); response.writeHead(204); response.end(); }
-    catch { response.writeHead(500); response.end(); }
+    catch (error) {
+      console.error("Relay worker task failed", error instanceof Error ? error.message : "unknown_error");
+      response.writeHead(500); response.end();
+    }
   });
 }).listen(port);
