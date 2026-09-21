@@ -41,10 +41,18 @@ export async function decryptRefreshToken(connection: Record<string, unknown>) {
 
 export async function storeGmailRefreshToken(uid: string, email: string | undefined, refreshToken: string | undefined) {
   if (!refreshToken) return;
-  await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { email: email ?? "", ...(await encryptRefreshToken(refreshToken)), updatedAt: new Date() });
+  await saveGmailConnection(uid, { email: email ?? "", ...(await encryptRefreshToken(refreshToken)), updatedAt: new Date() });
 }
 
-export async function gmailConnection(uid: string) { return getDocument(`users/${encodeURIComponent(uid)}/gmailConnection`) as Promise<GmailConnection | null>; }
+/** Firestore documents must have an even number of path segments. Store the connection map on the user document. */
+export async function gmailConnection(uid: string) {
+  const user = await getDocument(`users/${encodeURIComponent(uid)}`);
+  return user?.gmailConnection && typeof user.gmailConnection === "object" ? user.gmailConnection as GmailConnection : null;
+}
+
+export async function saveGmailConnection(uid: string, connection: GmailConnection) {
+  await setDocument(`users/${encodeURIComponent(uid)}`, { gmailConnection: connection });
+}
 
 export async function migrateLegacyConnection(uid: string) {
   const canonical = await gmailConnection(uid);
@@ -57,6 +65,6 @@ export async function migrateLegacyConnection(uid: string) {
     await deleteDocument(`gmailConnections/${encodeURIComponent(uid)}`);
     return gmailConnection(uid);
   }
-  await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { email: typeof legacy.email === "string" ? legacy.email : "", migrationState: "legacy_requires_reconnect", migratedAt: new Date() });
+  await saveGmailConnection(uid, { email: typeof legacy.email === "string" ? legacy.email : "", migrationState: "legacy_requires_reconnect", migratedAt: new Date() });
   return gmailConnection(uid);
 }

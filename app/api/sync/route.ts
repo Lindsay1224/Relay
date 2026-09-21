@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireSession } from "../../../lib/firebase-auth";
-import { gmailConnection, migrateLegacyConnection } from "../../../lib/firestore";
+import { gmailConnection, migrateLegacyConnection, saveGmailConnection } from "../../../lib/firestore";
 import { runtimeAccessToken, setDocument } from "../../../lib/platform";
 
 const cooldownMs = 5 * 60 * 1000;
@@ -15,7 +15,7 @@ export async function POST() {
     const last = typeof lastValue === "string" ? new Date(lastValue).getTime() : 0;
     if (Date.now() - last < cooldownMs) return NextResponse.json({ error: "Please wait before starting another sync" }, { status: 429 });
     const runId = crypto.randomUUID();
-    await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { sync: { ...(connection.sync ?? {}), lastManualSyncAt: new Date(), state: "queued", queuedCount: 0, processingCount: 0, processedCount: 0, skippedCount: 0, failedCount: 0 } });
+    await saveGmailConnection(uid, { ...connection, sync: { ...(connection.sync ?? {}), lastManualSyncAt: new Date(), state: "queued", queuedCount: 0, processingCount: 0, processedCount: 0, skippedCount: 0, failedCount: 0 } });
     await setDocument(`users/${encodeURIComponent(uid)}/syncRuns/${runId}`, { state: "queued", startedAt: new Date(), plannedCount: 0, queuedCount: 0, processingCount: 0, processedCount: 0, skippedCount: 0, failedCount: 0 });
     // The worker obtains message IDs and creates deterministic per-message tasks; no Gmail data crosses this route.
     const taskUrl = process.env.RELAY_WORKER_URL;
