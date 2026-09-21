@@ -60,8 +60,8 @@ export default function Home() {
     notify("Gmail sync started");
     const poll = window.setInterval(async () => { const status = await fetch("/api/sync-status").then(r => r.ok ? r.json() : null); if (status && !["queued", "processing"].includes(status.state)) { window.clearInterval(poll); setSyncing(false); const from = new Date(), to = new Date(from.getTime() + 60 * 86400000); const found = await fetch(`/api/events?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`).then(r => r.json()); setEvents((found.events ?? []).map(displayEvent)); notify(status.state === "complete" ? "Sync complete" : "Sync needs attention"); } }, 2500);
   };
-  if (view === "dashboard") return <Dashboard events={events} notify={notify} syncing={syncing} onSync={sync} />;
-  return <Connect onConnect={connectGmail} />;
+  if (view === "dashboard") return <><Dashboard events={events} notify={notify} syncing={syncing} onSync={sync} />{toast && <div className="toast" role="status">{toast}</div>}</>;
+  return <><Connect onConnect={connectGmail} />{toast && <div className="toast" role="status">{toast}</div>}</>;
 }
 
 function Brand() { return <a className="brand" href="#"><span className="brand-mark">r</span>relay</a>; }
