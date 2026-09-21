@@ -17,9 +17,15 @@ export async function GET(request: Request) {
     const { refresh_token, id_token } = await token.json() as { refresh_token?: string; id_token?: string };
     if (!id_token) throw new Error("Google identity token missing");
     const firebaseUser = await signInWithGoogleIdToken(id_token);
-    await storeGmailRefreshToken(firebaseUser.localId, firebaseUser.email, refresh_token);
     const response = NextResponse.redirect(new URL("/?connected=1", appUrl));
-    response.cookies.set("relay_session", await createSession(firebaseUser.localId, firebaseUser.email), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 24 * 14, path: "/" });
+    response.cookies.set("relay_session", await createSession(firebaseUser.idToken), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 24 * 14, path: "/" });
+    // Authentication must not depend on KMS/Gmail persistence. A storage failure leaves
+    // the parent signed in and clearly asks them to reconnect rather than losing the session.
+    try {
+      await storeGmailRefreshToken(firebaseUser.localId, firebaseUser.email, refresh_token);
+    } catch {
+      response.headers.set("Location", new URL("/?error=connection", appUrl).toString());
+    }
     return response;
   } catch {
     return NextResponse.redirect(new URL("/?error=gmail", appUrl));

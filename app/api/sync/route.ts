@@ -11,11 +11,12 @@ export async function POST() {
     const { uid } = await requireSession();
     const connection = await migrateLegacyConnection(uid) ?? await gmailConnection(uid);
     if (!connection?.tokenCiphertext) return NextResponse.json({ error: "Gmail reconnect required" }, { status: 409 });
-    const last = connection.sync?.lastManualSyncAt ? new Date(connection.sync.lastManualSyncAt).getTime() : 0;
+    const lastValue = connection.sync?.lastManualSyncAt;
+    const last = typeof lastValue === "string" ? new Date(lastValue).getTime() : 0;
     if (Date.now() - last < cooldownMs) return NextResponse.json({ error: "Please wait before starting another sync" }, { status: 429 });
     const runId = crypto.randomUUID();
-    await setDocument(`users/${uid}/gmailConnection`, { sync: { ...(connection.sync ?? {}), lastManualSyncAt: new Date(), state: "queued" } });
-    await setDocument(`users/${uid}/syncRuns/${runId}`, { state: "queued", startedAt: new Date(), plannedCount: 0, queuedCount: 0, processingCount: 0, processedCount: 0, skippedCount: 0, failedCount: 0 });
+    await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { sync: { ...(connection.sync ?? {}), lastManualSyncAt: new Date(), state: "queued", queuedCount: 0, processingCount: 0, processedCount: 0, skippedCount: 0, failedCount: 0 } });
+    await setDocument(`users/${encodeURIComponent(uid)}/syncRuns/${runId}`, { state: "queued", startedAt: new Date(), plannedCount: 0, queuedCount: 0, processingCount: 0, processedCount: 0, skippedCount: 0, failedCount: 0 });
     // The worker obtains message IDs and creates deterministic per-message tasks; no Gmail data crosses this route.
     const taskUrl = process.env.RELAY_WORKER_URL;
     const queue = process.env.RELAY_TASKS_QUEUE;

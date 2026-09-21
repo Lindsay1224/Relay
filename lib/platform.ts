@@ -58,6 +58,12 @@ export async function setDocument(path: string, value: Record<string, unknown>, 
   if (!response.ok && !(merge && response.status === 409)) throw new Error("Firestore write failed");
 }
 
+export async function deleteDocument(path: string) {
+  const token = await runtimeAccessToken();
+  const response = await fetch(`${firestoreRoot()}/${path}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (!response.ok && response.status !== 404) throw new Error("Firestore delete failed");
+}
+
 export async function listCollection(path: string) {
   const token = await runtimeAccessToken();
   const response = await fetch(`${firestoreRoot()}/${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });

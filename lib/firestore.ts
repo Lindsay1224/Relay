@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
-import { getDocument, runtimeAccessToken, setDocument } from "./platform";
+import { deleteDocument, getDocument, runtimeAccessToken, setDocument } from "./platform";
+import type { GmailConnection } from "./models";
 
 async function kms(path: string, body: Record<string, string>) {
   const token = await runtimeAccessToken();
@@ -43,13 +44,19 @@ export async function storeGmailRefreshToken(uid: string, email: string | undefi
   await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { email: email ?? "", ...(await encryptRefreshToken(refreshToken)), updatedAt: new Date() });
 }
 
-export async function gmailConnection(uid: string) { return getDocument(`users/${encodeURIComponent(uid)}/gmailConnection`); }
+export async function gmailConnection(uid: string) { return getDocument(`users/${encodeURIComponent(uid)}/gmailConnection`) as Promise<GmailConnection | null>; }
 
 export async function migrateLegacyConnection(uid: string) {
   const canonical = await gmailConnection(uid);
   if (canonical?.tokenCiphertext) return canonical;
   const legacy = await getDocument(`gmailConnections/${encodeURIComponent(uid)}`);
   if (!legacy) return canonical;
-  await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { email: legacy.email ?? "", migrationState: "legacy_requires_reconnect", migratedAt: new Date() });
+  const token = legacy.refreshToken ?? legacy.refresh_token;
+  if (typeof token === "string" && token.length > 10) {
+    await storeGmailRefreshToken(uid, typeof legacy.email === "string" ? legacy.email : undefined, token);
+    await deleteDocument(`gmailConnections/${encodeURIComponent(uid)}`);
+    return gmailConnection(uid);
+  }
+  await setDocument(`users/${encodeURIComponent(uid)}/gmailConnection`, { email: typeof legacy.email === "string" ? legacy.email : "", migrationState: "legacy_requires_reconnect", migratedAt: new Date() });
   return gmailConnection(uid);
 }

@@ -23,6 +23,7 @@ env:
   - variable: RELAY_TASKS_LOCATION
     value: us-east4
   - variable: RELAY_WORKER_URL
+    # Set from `terraform output -raw worker_url` during deployment; never point this at a public endpoint.
     value: https://relay-extraction-worker-REPLACE.us-east4.run.app
   - variable: RELAY_TASKS_SERVICE_ACCOUNT
     value: relay-tasks-invoker@relay-family-schedule.iam.gserviceaccount.com
