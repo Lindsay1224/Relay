@@ -31,6 +31,8 @@ export async function POST() {
     if (!response.ok) throw new Error("Unable to queue sync");
     return NextResponse.json({ runId, state: "queued" }, { status: 202 });
   } catch (error) {
+    // Keep the browser response generic, but retain a credential/body-free diagnostic in Cloud Run logs.
+    console.error("Relay sync planner failed", error instanceof Error ? error.message : "unknown_error");
     const status = error instanceof Error && error.message === "Authentication required" ? 401 : 500;
     return NextResponse.json({ error: status === 401 ? "Authentication required" : "Unable to start sync" }, { status });
   }
