@@ -9,7 +9,7 @@ export async function GET() {
     const sync = connection?.sync ?? {};
     return NextResponse.json({
       state: sync.state ?? "idle", queuedCount: Number(sync.queuedCount ?? 0), processingCount: Number(sync.processingCount ?? 0),
-      processedCount: Number(sync.processedCount ?? 0), skippedCount: Number(sync.skippedCount ?? 0), failedCount: Number(sync.failedCount ?? 0),
+      processedCount: Number(sync.processedCount ?? 0), candidateCount: Number(sync.candidateCount ?? 0), skippedCount: Number(sync.skippedCount ?? 0), failedCount: Number(sync.failedCount ?? 0),
       lastSuccessfulAt: sync.lastSuccessfulAt ?? null, recoveryState: sync.recoveryState ?? null,
     });
   } catch {
