@@ -41,7 +41,7 @@ export function decodeFirestore(fields: Record<string, any> = {}): Record<string
 
 export async function getDocument(path: string) {
   const token = await runtimeAccessToken();
-  const response = await fetch(`${firestoreRoot()}/${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  const response = await fetch(`${firestoreRoot()}/${path}?pageSize=300`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error("Firestore read failed");
   const document = await response.json() as { fields?: Record<string, any> };
