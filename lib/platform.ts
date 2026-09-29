@@ -66,10 +66,21 @@ export async function deleteDocument(path: string) {
 
 export async function listCollection(path: string) {
   const token = await runtimeAccessToken();
-  const response = await fetch(`${firestoreRoot()}/${path}?pageSize=300`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-  if (!response.ok) throw new Error("Firestore list failed");
-  const value = await response.json() as { documents?: Array<{ name: string; fields?: Record<string, any> }> };
-  return (value.documents ?? []).map((document) => ({ id: document.name.split("/").at(-1)!, ...decodeFirestore(document.fields) }));
+  const records: Array<Record<string, unknown>> = [];
+  let pageToken: string | undefined;
+  let pages = 0;
+  do {
+    const params = new URLSearchParams({ pageSize: "300" });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await fetch(`${firestoreRoot()}/${path}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    if (!response.ok) throw new Error("Firestore list failed");
+    const value = await response.json() as { documents?: Array<{ name: string; fields?: Record<string, any> }>; nextPageToken?: string };
+    records.push(...(value.documents ?? []).map((document) => ({ id: document.name.split("/").at(-1)!, ...decodeFirestore(document.fields) })));
+    pageToken = value.nextPageToken;
+    pages += 1;
+    if (pages >= 100 && pageToken) throw new Error("Firestore collection exceeds pagination limit");
+  } while (pageToken);
+  return records;
 }
 
 export function opaqueSession() { return crypto.randomBytes(32).toString("base64url"); }

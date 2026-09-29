@@ -9,7 +9,7 @@ export async function GET() {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const candidates = records
       .filter((record) => record.status === "relevant" && typeof record.receivedAt === "string" && Date.parse(record.receivedAt) >= cutoff)
-      .sort((a, b) => String(b.receivedAt ?? b.processedAt ?? "").localeCompare(String(a.receivedAt ?? a.processedAt ?? "")))
+      .sort((a, b) => (Date.parse(String(b.receivedAt ?? b.processedAt ?? "")) || 0) - (Date.parse(String(a.receivedAt ?? a.processedAt ?? "")) || 0))
       .slice(0, 50)
       .map(({ id, sender, subject, receivedAt, excerpt, threadId, relevanceScore, sanitizedReason }) => ({
         id, sender, subject, receivedAt, excerpt, relevanceScore, sanitizedReason,
