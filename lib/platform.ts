@@ -58,6 +58,16 @@ export async function setDocument(path: string, value: Record<string, unknown>, 
   if (!response.ok && !(merge && response.status === 409)) throw new Error(`Firestore write failed (${response.status})`);
 }
 
+export async function incrementDocument(path: string, fieldPaths: string[]) {
+  const token = await runtimeAccessToken();
+  const response = await fetch(`${firestoreRoot()}:commit`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ writes: [{ transform: { document: `${firestoreRoot()}/${path}`, fieldTransforms: fieldPaths.map((fieldPath) => ({ fieldPath, increment: { doubleValue: 1 } })) } }] }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Firestore increment failed (${response.status})`);
+}
+
 export async function deleteDocument(path: string) {
   const token = await runtimeAccessToken();
   const response = await fetch(`${firestoreRoot()}/${path}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
