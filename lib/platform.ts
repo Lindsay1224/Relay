@@ -62,7 +62,7 @@ export async function incrementDocument(path: string, fieldPaths: string[]) {
   const token = await runtimeAccessToken();
   const response = await fetch(`${firestoreRoot()}:commit`, {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ writes: [{ transform: { document: `${firestoreRoot()}/${path}`, fieldTransforms: fieldPaths.map((fieldPath) => ({ fieldPath, increment: { doubleValue: 1 } })) } }] }),
+    body: JSON.stringify({ writes: [{ transform: { document: `projects/${project()}/databases/(default)/documents/${path}`, fieldTransforms: fieldPaths.map((fieldPath) => ({ fieldPath, increment: { doubleValue: 1 } })) } }] }),
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`Firestore increment failed (${response.status})`);
