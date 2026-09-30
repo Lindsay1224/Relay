@@ -30,8 +30,8 @@ async function plan(t: Task) {
   for (const id of unique) { const existing = await getDocument(`users/${t.uid}/messageProcessing/${id}`); if (!["processed", "skipped", "relevant"].includes(String(existing?.status ?? ""))) pending.push(id); else if (existing?.status === "relevant" && existing?.categorizationVersion !== CATEGORY_VERSION && typeof existing.receivedAt === "string" && Date.parse(existing.receivedAt) >= cutoff) categoryPending.push(id); }
   await setDocument(`users/${t.uid}/syncRuns/${t.runId}`, { state: "processing", plannedCount: pending.length, queuedCount: pending.length, processingCount: 0, completedCount: 0, processedCount: 0, relevantCount: 0, candidateCount: 0, skippedCount: 0, failedCount: 0, recoveryState: null, updatedAt: new Date() });
   await saveGmailConnection(t.uid, { ...conn, sync: { ...sync, state: "processing", queuedCount: pending.length, recoveryState: null } });
-  for (const id of pending) await queue({ uid: t.uid, runId: t.runId, operation: "extract", messageId: id, taskKey: taskKey(t.uid, id, `inbox-24h:${VERSION}`) });
-  for (const id of categoryPending) await queue({ uid: t.uid, runId: t.runId, operation: "categorize", messageId: id, taskKey: taskKey(t.uid, id, `inbox-24h-categorize:${CATEGORY_VERSION}`) });
+  for (const id of pending) await queue({ uid: t.uid, runId: t.runId, operation: "extract", messageId: id, taskKey: taskKey(t.uid, id, `inbox-24h:${VERSION}:${t.runId}`) });
+  for (const id of categoryPending) await queue({ uid: t.uid, runId: t.runId, operation: "categorize", messageId: id, taskKey: taskKey(t.uid, id, `inbox-24h-categorize:${CATEGORY_VERSION}:${t.runId}`) });
   if (!pending.length) await saveGmailConnection(t.uid, { ...conn, sync: { ...sync, state: "complete", lastSuccessfulAt: new Date(), queuedCount: 0, processingCount: 0 } });
 }
 
