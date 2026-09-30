@@ -50,8 +50,10 @@ export async function getDocument(path: string) {
 
 export async function setDocument(path: string, value: Record<string, unknown>, merge = true) {
   const token = await runtimeAccessToken();
-  const suffix = merge ? "" : "?currentDocument.exists=false";
-  const response = await fetch(`${firestoreRoot()}/${path}${suffix}`, {
+  const params = new URLSearchParams();
+  if (merge) for (const key of Object.keys(value)) params.append("updateMask.fieldPaths", key);
+  else params.set("currentDocument.exists", "false");
+  const response = await fetch(`${firestoreRoot()}/${path}?${params.toString()}`, {
     method: "PATCH", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ fields: firestoreFields(value) }), cache: "no-store",
   });
