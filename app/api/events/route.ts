@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const events = await listCollection(`users/${uid}/events`) as Array<Record<string, unknown>>;
     const owned = events.filter((event) => {
       const start = new Date(String(event.startAt)).getTime();
-      return Number.isFinite(start) && start >= from.getTime() && start < to.getTime();
+      return event.status !== "cancelled" && Number.isFinite(start) && start >= from.getTime() && start < to.getTime();
     });
     // Evidence is deliberately constrained metadata: never return body, MIME, attachments, tokens, or model prompts.
     const safe = await Promise.all(owned.map(async (event) => {
