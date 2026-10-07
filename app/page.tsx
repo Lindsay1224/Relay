@@ -16,7 +16,7 @@ type ScheduleEvent = {
   evidence?: Array<{ sender: string; subject: string; receivedAt: string; excerpt: string; gmailThreadUrl: string | null }>;
 };
 
-type CandidateMessage = { id: string; sender: string; subject: string; receivedAt: string; excerpt: string; relevanceScore: number; gmailThreadUrl: string | null };
+type CandidateMessage = { id: string; sender: string; subject: string; receivedAt: string; excerpt: string; relevanceScore: number; category: "school" | "sports" | "home" | "medical" | "bills"; gmailThreadUrl: string | null };
 
 function displayEvent(event: Record<string, unknown>): ScheduleEvent {
   const date = new Date(String(event.startAt));
@@ -79,7 +79,7 @@ function Preview() { return <div className="preview-card"><div className="previe
 function CandidateSection({ candidates, notify }: { candidates: CandidateMessage[]; notify: (message: string) => void }) {
   return <section className="candidate-section inbox-section">
     <div className="section-heading"><div><p className="eyebrow">Needs a look</p><h3>Relevant inbox messages</h3></div><span className="source-note">{candidates.length} candidates</span></div>
-    {candidates.length ? <div className="message-list">{candidates.map((candidate) => <button className="message-row" key={candidate.id} onClick={() => notify(candidate.gmailThreadUrl ? `${candidate.sender}: ${candidate.subject}` : candidate.excerpt)}><span className="message-icon school-icon">✦</span><span><b>{candidate.subject || "Relevant Gmail message"}</b><small>{candidate.sender} · relevance {candidate.relevanceScore}</small></span><time>{candidate.receivedAt ? new Date(candidate.receivedAt).toLocaleDateString() : "Gmail"}</time><i>›</i></button>)}</div> : <p className="empty candidate-empty">{ "No relevant inbox messages found yet."}</p>}
+    {candidates.length ? <div className="message-list">{candidates.map((candidate) => <button className="message-row" key={candidate.id} onClick={() => notify(candidate.gmailThreadUrl ? `${candidate.sender}: ${candidate.subject}` : candidate.excerpt)}><span className="message-icon school-icon">✦</span><span><b>{candidate.subject || "Relevant Gmail message"}</b><small><span className="category-badge">{candidate.category}</span>{candidate.sender} · relevance {candidate.relevanceScore}</small></span><time>{candidate.receivedAt ? new Date(candidate.receivedAt).toLocaleDateString() : "Gmail"}</time><i>›</i></button>)}</div> : <p className="empty candidate-empty">{ "No relevant inbox messages found yet."}</p>}
   </section>;
 }
 
