@@ -8,13 +8,13 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const from = new Date(url.searchParams.get("from") ?? "");
     const to = new Date(url.searchParams.get("to") ?? "");
-    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to || to.getTime() - from.getTime() > 1000 * 60 * 60 * 24 * 366) {
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to || to.getTime() - from.getTime() > 1000 * 60 * 60 * 24 * 400) {
       return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
     }
     const events = await listCollection(`users/${uid}/events`) as Array<Record<string, unknown>>;
     const owned = events.filter((event) => {
       const start = new Date(String(event.startAt)).getTime();
-      return event.status !== "cancelled" && Number.isFinite(start) && start >= from.getTime() && start < to.getTime();
+      return event.status !== "cancelled" && event.status !== "removed" && Number.isFinite(start) && start >= from.getTime() && start < to.getTime();
     });
     // Evidence is deliberately constrained metadata: never return body, MIME, attachments, tokens, or model prompts.
     const safe = await Promise.all(owned.map(async (event) => {
