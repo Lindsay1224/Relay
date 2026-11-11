@@ -21,6 +21,7 @@ export type ActionItem = {
   urgency: ActionUrgency;
   confidence: number;
   status: ActionStatus;
+  snoozedUntil?: string;
   sourceMessageId: string;
   sourceThreadId?: string;
   evidencePhrase: string;
