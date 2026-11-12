@@ -3,6 +3,7 @@ import { requireSession } from "../../../../../lib/firebase-auth";
 import { getDocument, setDocument } from "../../../../../lib/platform";
 import { validActionItem } from "../../../../../lib/action-models";
 import { ACTION_FEEDBACK_TYPES, feedbackUpdate, type ActionFeedbackType } from "../../../../../lib/action-feedback";
+import { confirmedActionEvent } from "../../../../../lib/action-event";
 
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const update = feedbackUpdate(action, body.action as ActionFeedbackType, now, fields);
     await setDocument(path, update);
     await setDocument(`${path}/feedback/${Date.now()}`, { targetId: id, feedbackType: body.action, createdAt: now });
-    return NextResponse.json({ ok: true, action: await getDocument(path) });
+    let event: Record<string, unknown> | null = null;
+    if (body.action === "confirm") {
+      const candidate = confirmedActionEvent({ ...action, ...update } as typeof action, now);
+      if (candidate) {
+        event = candidate;
+        await setDocument(`users/${uid}/events/${candidate.id}`, candidate);
+        await setDocument(`users/${uid}/events/${candidate.id}/evidence/${candidate.sourceFingerprint}`, { sender: "Relay action", subject: action.title, receivedAt: action.createdAt, excerpt: action.evidencePhrase, threadId: action.sourceThreadId ?? "", expiresAt: candidate.expiresAt });
+      }
+    }
+    return NextResponse.json({ ok: true, action: await getDocument(path), event });
   } catch { return NextResponse.json({ error: "Authentication required" }, { status: 401 }); }
 }
