@@ -15,7 +15,9 @@ export async function persistCalendarEvents(uid: string, events: CalendarEvent[]
     if (!Number.isFinite(start) || start < from || start >= to) continue;
     const id = calendarEventId(event);
     const path = `users/${uid}/events/${id}`;
-    await setDocument(path, { ...event, id, source: "ics", updatedAt: new Date(), createdAt: new Date() });
+    const existing = await getDocument(path);
+    if (existing?.status === "removed") continue;
+    await setDocument(path, { ...event, id, source: "ics", status: existing?.status === "confirmed" ? "confirmed" : event.status, updatedAt: new Date(), createdAt: existing?.createdAt ?? new Date() });
     await setDocument(`${path}/evidence/${event.sourceFingerprint}`, { ...evidence, expiresAt: evidenceExpiry() });
   }
 }

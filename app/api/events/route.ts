@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "../../../lib/firebase-auth";
 import { listCollection } from "../../../lib/platform";
+import { annotateConflicts } from "../../../lib/event-projection";
 
 export async function GET(request: Request) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
       return event.status !== "cancelled" && event.status !== "removed" && Number.isFinite(start) && start >= from.getTime() && start < to.getTime();
     });
     // Evidence is deliberately constrained metadata: never return body, MIME, attachments, tokens, or model prompts.
-    const safe = await Promise.all(owned.map(async (event) => {
+    const safe = await Promise.all(annotateConflicts(owned).map(async (event) => {
       const evidence = await listCollection(`users/${uid}/events/${encodeURIComponent(String(event.id))}/evidence`) as Array<Record<string, unknown>>;
       return { ...event, evidence: evidence.map(({ sender, subject, receivedAt, excerpt, threadId }) => ({ sender, subject, receivedAt, excerpt, gmailThreadUrl: typeof threadId === "string" ? `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(threadId)}` : null })) };
     }));

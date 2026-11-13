@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "../../../../../lib/firebase-auth";
 import { getDocument, setDocument } from "../../../../../lib/platform";
+import { eventFeedbackStatus } from "../../../../../lib/event-projection";
 
-const allowed = new Set(["confirm", "remove", "update"]);
+const allowed = new Set(["confirm", "remove", "update", "restore"]);
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { uid } = await requireSession();
@@ -12,8 +13,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!event || event.source !== "email_inferred") return NextResponse.json({ error: "Inferred event not found" }, { status: 404 });
     const body = await request.json() as { action?: string; title?: string; startAt?: string; endAt?: string; allDay?: boolean; category?: string };
     if (!body.action || !allowed.has(body.action)) return NextResponse.json({ error: "Invalid feedback action" }, { status: 400 });
-    if (body.action === "confirm") await setDocument(path, { status: "confirmed", confidence: Math.min(1, Number(event.confidence ?? 0) + 0.1), confirmedAt: new Date(), updatedAt: new Date() });
-    if (body.action === "remove") await setDocument(path, { status: "removed", removedAt: new Date(), updatedAt: new Date() });
+    if (body.action === "confirm" || body.action === "remove" || body.action === "restore") {
+      const status = eventFeedbackStatus(event.status, body.action);
+      const update: Record<string, unknown> = { status, updatedAt: new Date() };
+      if (body.action === "confirm") Object.assign(update, { confidence: Math.min(1, Number(event.confidence ?? 0) + 0.1), confirmedAt: new Date() });
+      if (body.action === "remove") update.removedAt = new Date();
+      await setDocument(path, update);
+      await setDocument(`${path}/feedback/${Date.now()}`, { targetId: id, feedbackType: body.action, createdAt: new Date() });
+    }
     if (body.action === "update") {
       const update: Record<string, unknown> = { updatedAt: new Date() };
       if (typeof body.title === "string" && body.title.trim()) update.title = body.title.trim().slice(0, 240);

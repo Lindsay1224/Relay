@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { evidenceExpiry } from "./policies";
 import type { ActionItem } from "./action-models";
+import { EVENT_PROJECTION_VERSION } from "./event-projection";
 
 export function actionEventId(actionId: string, startAt: string) {
   return crypto.createHash("sha256").update(`action:${actionId}:${startAt}`).digest("hex").slice(0, 40);
@@ -22,6 +23,7 @@ export function confirmedActionEvent(action: ActionItem, now = new Date()) {
     source: "action_confirmed" as const,
     sourceActionId: action.id,
     sourceFingerprint: `action:${action.id}`,
+    projectionVersion: EVENT_PROJECTION_VERSION,
     status: "pending_confirmation" as const,
     confidence: Math.min(1, action.confidence + 0.05),
     updatedAt: now,
