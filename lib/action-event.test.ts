@@ -7,7 +7,8 @@ const action = { id: "a1", title: "Register for race", deadline: "2026-11-26", t
 describe("confirmed action calendar events", () => {
   it("creates a pending all-day event from a date-only action", () => {
     const event = confirmedActionEvent(action, new Date("2026-11-11T00:00:00Z"));
-    expect(event).toMatchObject({ title: "Register for race", allDay: true, source: "action_confirmed", sourceActionId: "a1", status: "pending_confirmation" });
+    expect(event).toMatchObject({ title: "Register for race", allDay: true, source: "action_confirmed", sourceActionId: "a1", status: "confirmed" });
+    expect(event?.confirmedAt).toEqual(new Date("2026-11-11T00:00:00Z"));
     expect(event?.id).toBe(actionEventId("a1", "2026-11-26T00:00:00.000Z"));
   });
   it("does not create an event without a usable date", () => {
