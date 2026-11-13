@@ -10,7 +10,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const path = `users/${uid}/events/${encodeURIComponent(id)}`;
     const event = await getDocument(path);
-    if (!event || event.source !== "email_inferred") return NextResponse.json({ error: "Inferred event not found" }, { status: 404 });
+    if (!event || !["email_inferred", "action_confirmed", "ics"].includes(String(event.source))) return NextResponse.json({ error: "Event not found" }, { status: 404 });
     const body = await request.json() as { action?: string; title?: string; startAt?: string; endAt?: string; allDay?: boolean; category?: string };
     if (!body.action || !allowed.has(body.action)) return NextResponse.json({ error: "Invalid feedback action" }, { status: 400 });
     if (body.action === "confirm" || body.action === "remove" || body.action === "restore") {
