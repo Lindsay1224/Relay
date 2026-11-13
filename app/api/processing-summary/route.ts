@@ -11,7 +11,7 @@ export async function GET() {
     const byReason: Record<string, number> = {};
     for (const decision of decisions) byReason[decision.sanitizedReason] = (byReason[decision.sanitizedReason] ?? 0) + 1;
     const latest = decisions.map((decision) => Date.parse(decision.decidedAt)).filter(Number.isFinite).sort((a, b) => b - a)[0];
-    return NextResponse.json({ total: decisions.length, includedCount: decisions.filter((d) => d.disposition === "included").length, excludedCount: decisions.filter((d) => d.disposition === "excluded").length, failedCount: decisions.filter((d) => d.disposition === "failed").length, byReason, lastDecidedAt: latest ? new Date(latest).toISOString() : null });
+    return NextResponse.json({ total: decisions.length, includedCount: decisions.filter((d) => d.disposition === "included").length, needsReviewCount: decisions.filter((d) => d.disposition === "needs_review").length, excludedCount: decisions.filter((d) => d.disposition === "excluded").length, failedCount: decisions.filter((d) => d.disposition === "failed").length, byReason, lastDecidedAt: latest ? new Date(latest).toISOString() : null });
   } catch {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }

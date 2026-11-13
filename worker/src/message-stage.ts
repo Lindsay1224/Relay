@@ -1,5 +1,6 @@
 export type Part = { mimeType?: string; filename?: string; body?: { data?: string }; parts?: Part[] };
 export type Message = { id: string; threadId: string; internalDate: string; payload?: Part & { headers?: Array<{ name?: string; value?: string }> } };
+import { evaluateNoise } from "../../lib/noise-policy.js";
 
 const b64 = (value?: string) => value ? Buffer.from(value, "base64url").toString("utf8") : "";
 export const header = (headers: Array<{ name?: string; value?: string }> | undefined, name: string) => headers?.find((item) => item.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
@@ -11,8 +12,6 @@ export function mimeText(part?: Part): { plain: string; html: string; ics: strin
 }
 
 export function scoreRelevance(subject: string, sender: string, text: string, hasCalendarAttachment = false) {
-  const value = `${subject} ${sender} ${text}`;
-  if (/(receipt|sale|order confirmation|privacy policy)/i.test(value)) return { score: 0, reason: "excluded_non_schedule" as const };
-  const score = (value.match(/school|teacher|field trip|practice|game|coach|dentist|orthodontist|doctor|pediatrician|appointment|conference|dismissal|holiday|calendar|\b(?:mon|tues|wednes|thurs|fri|sat|sun)day\b|\d{1,2}:\d{2}|\b(?:am|pm)\b/gi) ?? []).length + (hasCalendarAttachment ? 3 : 0);
-  return { score, reason: score >= 2 ? "candidate" as const : "insufficient_schedule_signals" as const };
+  const decision = evaluateNoise(subject, sender, text, hasCalendarAttachment);
+  return { score: decision.score, reason: decision.sanitizedReason === "excluded_non_schedule" ? "excluded_non_schedule" as const : decision.sanitizedReason === "included_inbox_message" ? "candidate" as const : "insufficient_schedule_signals" as const };
 }

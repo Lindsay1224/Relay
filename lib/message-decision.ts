@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { evidenceExpiry } from "./policies";
 
-export const MESSAGE_DECISION_DISPOSITIONS = ["included", "excluded", "failed"] as const;
+export const MESSAGE_DECISION_DISPOSITIONS = ["included", "excluded", "needs_review", "failed"] as const;
 export type MessageDecisionDisposition = typeof MESSAGE_DECISION_DISPOSITIONS[number];
 
 export type MessageDecision = {
