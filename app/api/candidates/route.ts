@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "../../../lib/firebase-auth";
 import { listCollection } from "../../../lib/platform";
+import { newestPerThread } from "../../../lib/thread-models";
 
 const DISPLAY_CATEGORIES = new Set(["school", "sports", "home", "medical", "bills"]);
 
@@ -9,9 +10,12 @@ export async function GET() {
     const { uid } = await requireSession();
     const records = await listCollection(`users/${uid}/messageProcessing`) as Array<Record<string, unknown>>;
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    const candidates = records
+    const candidates = newestPerThread(records
       .filter((record) => record.status === "relevant" && DISPLAY_CATEGORIES.has(String(record.category ?? "")) && typeof record.receivedAt === "string" && Date.parse(record.receivedAt) >= cutoff)
+      .filter((record): record is Record<string, unknown> & { id: string; threadId: string; receivedAt: string } => typeof record.id === "string" && typeof record.threadId === "string" && typeof record.receivedAt === "string")
       .sort((a, b) => (Date.parse(String(b.receivedAt ?? b.processedAt ?? "")) || 0) - (Date.parse(String(a.receivedAt ?? a.processedAt ?? "")) || 0))
+    )
+      .sort((a, b) => (Date.parse(String(b.receivedAt)) || 0) - (Date.parse(String(a.receivedAt)) || 0))
       .slice(0, 50)
       .map(({ id, sender, subject, receivedAt, excerpt, threadId, relevanceScore, sanitizedReason, category }) => ({
         id, sender, subject, receivedAt, excerpt, relevanceScore, sanitizedReason, category,

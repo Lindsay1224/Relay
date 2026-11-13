@@ -9,6 +9,7 @@ import { parseIcs as parseCalendarIcs } from "./calendar-stage.js";
 import { persistCalendarEvents, persistCanonicalMessage, persistMessageDecision, settleTask } from "./worker-persistence.js";
 import type { WorkerTask } from "./worker-contracts.js";
 import { ACTION_EXTRACTION_VERSION, normalizeAction } from "./action-stage.js";
+import { newestPerThread } from "../../lib/thread-models.js";
 
 type Task = WorkerTask;
 const settle = settleTask;
@@ -19,16 +20,22 @@ async function queue(t: Task) { const project = process.env.GOOGLE_CLOUD_PROJECT
 
 async function plan(t: Task) {
   const conn = await gmailConnection(t.uid); if (!conn) throw new Error("Gmail connection missing");
-  const access = await token(t.uid), sync = conn.sync ?? {}, ids: string[] = [];
+  const access = await token(t.uid), sync = conn.sync ?? {}, refs: Array<{ id: string; threadId: string }> = [];
   let pageToken: string | undefined;
   do {
     const params = new URLSearchParams({ q: "in:inbox newer_than:1d", maxResults: String(MAX_MESSAGES) }); if (pageToken) params.set("pageToken", pageToken);
     const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${params}`, { headers: { Authorization: `Bearer ${access}` } });
     if (!r.ok) throw new Error(`Gmail inbox listing failed (${r.status})`);
-    const page = await r.json() as any; ids.push(...((page.messages ?? []).map((x: any) => x.id))); pageToken = page.nextPageToken;
-  } while (pageToken && ids.length < MAX_MESSAGES);
-  const unique = [...new Set(ids)].slice(0, MAX_MESSAGES), pending: string[] = [], categoryPending: string[] = [], cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  for (const id of unique) { const existing = await getDocument(`users/${t.uid}/messageProcessing/${id}`); if (!["processed", "skipped", "relevant"].includes(String(existing?.status ?? ""))) pending.push(id); else if (existing?.status === "relevant" && existing?.categorizationVersion !== CATEGORY_VERSION && typeof existing.receivedAt === "string" && Date.parse(existing.receivedAt) >= cutoff) categoryPending.push(id); }
+    const page = await r.json() as any; refs.push(...((page.messages ?? []).map((x: any) => ({ id: String(x.id), threadId: String(x.threadId ?? x.id) })))); pageToken = page.nextPageToken;
+  } while (pageToken && refs.length < MAX_MESSAGES);
+  const metadata = await Promise.all([...new Map(refs.map((ref) => [ref.id, ref])).values()].slice(0, MAX_MESSAGES).map(async (ref) => {
+    const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(ref.id)}?format=metadata`, { headers: { Authorization: `Bearer ${access}` } });
+    if (!response.ok) throw new Error(`Gmail message metadata failed (${response.status})`);
+    const message = await response.json() as { id?: string; threadId?: string; internalDate?: string };
+    return { id: String(message.id ?? ref.id), threadId: String(message.threadId ?? ref.threadId), receivedAt: new Date(Number(message.internalDate ?? 0)).toISOString() };
+  }));
+  const latest = newestPerThread(metadata), pending: string[] = [], categoryPending: string[] = [], cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  for (const message of latest) { const existing = await getDocument(`users/${t.uid}/messageProcessing/${message.id}`); if (!["processed", "skipped", "relevant"].includes(String(existing?.status ?? ""))) pending.push(message.id); else if (existing?.status === "relevant" && existing?.categorizationVersion !== CATEGORY_VERSION && typeof existing.receivedAt === "string" && Date.parse(existing.receivedAt) >= cutoff) categoryPending.push(message.id); }
   await setDocument(`users/${t.uid}/syncRuns/${t.runId}`, { state: "processing", plannedCount: pending.length, queuedCount: pending.length, processingCount: 0, completedCount: 0, processedCount: 0, relevantCount: 0, candidateCount: 0, skippedCount: 0, failedCount: 0, recoveryState: null, updatedAt: new Date() });
   await saveGmailConnection(t.uid, { ...conn, sync: { ...sync, state: "processing", queuedCount: pending.length, recoveryState: null } });
   for (const id of pending) await queue({ uid: t.uid, runId: t.runId, operation: "extract", messageId: id, taskKey: taskKey(t.uid, id, `inbox-24h:${VERSION}:${t.runId}`) });
