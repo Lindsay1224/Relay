@@ -21,6 +21,10 @@ describe("phase-one shared policies", () => {
   it("accepts a bounded explicit action extraction", () => {
     expect(validActionExtraction({ title: "Register for race", deadline: "2026-11-26T23:59:00Z", deadlineType: "registration_deadline", category: "sports", urgency: "high", confidence: 0.91, dateExplicit: true, evidencePhrase: "Registration closes November 26" })).toBe(true);
   });
+  it("bounds optional action ownership and response metadata", () => {
+    expect(validActionExtraction({ title: "Return form", actionType: "respond", responsiblePerson: "Riley", requiresResponse: true, category: "school", urgency: "normal", confidence: 0.8, dateExplicit: true, evidencePhrase: "Please reply" })).toBe(true);
+    expect(validActionExtraction({ title: "Return form", actionType: "respond", responsiblePerson: "x".repeat(121), category: "school", urgency: "normal", confidence: 0.8, dateExplicit: true, evidencePhrase: "Please reply" })).toBe(false);
+  });
   it("rejects ambiguous, unbounded, or low-quality action output", () => {
     expect(validActionExtraction({ title: "Do it tomorrow", category: "sports", urgency: "high", confidence: 0.9, dateExplicit: false, evidencePhrase: "tomorrow" })).toBe(false);
     expect(validActionExtraction({ title: "x".repeat(241), category: "sports", urgency: "high", confidence: 0.9, dateExplicit: true, evidencePhrase: "explicit date" })).toBe(false);

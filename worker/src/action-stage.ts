@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { validActionExtraction, type ActionCategory, type ActionItem, type ActionExtractionResult } from "../../lib/action-models.js";
+import { ACTION_TYPES, validActionExtraction, type ActionCategory, type ActionItem, type ActionExtractionResult } from "../../lib/action-models.js";
 
 export const ACTION_EXTRACTION_VERSION = "v1";
 
@@ -32,10 +32,14 @@ export function normalizeAction(value: unknown, category: string, timezone: stri
   const normalizedCategory = ["school", "sports", "medical", "home", "bills", "other"].includes(result.category) ? result.category : "other" as ActionCategory;
   const id = actionId(sourceFingerprint, result.title, result.deadline);
   const createdAt = now.toISOString();
+  const responsiblePerson = result.responsiblePerson?.replace(/\s+/g, " ").trim().slice(0, 120);
   return {
     id,
     title: result.title.replace(/\s+/g, " ").trim(),
+    actionType: result.actionType && ACTION_TYPES.includes(result.actionType) ? result.actionType : "other",
     ...(result.description ? { description: result.description.replace(/\s+/g, " ").trim() } : {}),
+    ...(responsiblePerson ? { responsiblePerson } : {}),
+    requiresResponse: result.requiresResponse === true,
     ...(result.deadline ? { deadline: result.deadline } : {}),
     ...(result.deadlineType ? { deadlineType: result.deadlineType } : {}),
     ...(result.relatedEventDate ? { relatedEventDate: result.relatedEventDate } : {}),

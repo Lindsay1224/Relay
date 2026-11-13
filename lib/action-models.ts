@@ -1,4 +1,4 @@
-import { MAX_ACTION_DESCRIPTION_LENGTH, MAX_ACTION_TITLE_LENGTH, MAX_EVIDENCE_LENGTH } from "./policies";
+import { MAX_ACTION_DESCRIPTION_LENGTH, MAX_ACTION_RESPONSIBLE_LENGTH, MAX_ACTION_TITLE_LENGTH, MAX_EVIDENCE_LENGTH } from "./policies";
 
 export const ACTION_CATEGORIES = ["school", "sports", "medical", "home", "bills", "other"] as const;
 export type ActionCategory = typeof ACTION_CATEGORIES[number];
@@ -8,11 +8,16 @@ export const ACTION_URGENCIES = ["low", "normal", "high", "urgent"] as const;
 export type ActionUrgency = typeof ACTION_URGENCIES[number];
 export const ACTION_DEADLINE_TYPES = ["registration_deadline", "response_deadline", "appointment", "event", "other"] as const;
 export type ActionDeadlineType = typeof ACTION_DEADLINE_TYPES[number];
+export const ACTION_TYPES = ["respond", "register", "pay", "prepare", "attend", "bring", "schedule", "other"] as const;
+export type ActionType = typeof ACTION_TYPES[number];
 
 export type ActionItem = {
   id: string;
   title: string;
+  actionType?: ActionType;
   description?: string;
+  responsiblePerson?: string;
+  requiresResponse?: boolean;
   deadline?: string;
   deadlineType?: ActionDeadlineType;
   relatedEventDate?: string;
@@ -52,7 +57,10 @@ export type ActionFeedback = {
 
 export type ActionExtractionResult = {
   title: string;
+  actionType?: ActionType;
   description?: string;
+  responsiblePerson?: string;
+  requiresResponse?: boolean;
   deadline?: string;
   deadlineType?: ActionDeadlineType;
   relatedEventDate?: string;
@@ -71,6 +79,9 @@ export function validActionExtraction(value: unknown): value is ActionExtraction
   const action = value as Record<string, unknown>;
   return typeof action.title === "string" && action.title.trim().length > 0 && action.title.length <= MAX_ACTION_TITLE_LENGTH &&
     (action.description === undefined || (typeof action.description === "string" && action.description.length <= MAX_ACTION_DESCRIPTION_LENGTH)) &&
+    (action.actionType === undefined || isEnum(ACTION_TYPES, action.actionType)) &&
+    (action.responsiblePerson === undefined || (typeof action.responsiblePerson === "string" && action.responsiblePerson.trim().length > 0 && action.responsiblePerson.length <= MAX_ACTION_RESPONSIBLE_LENGTH)) &&
+    (action.requiresResponse === undefined || typeof action.requiresResponse === "boolean") &&
     (action.deadline === undefined || isDate(action.deadline)) && (action.relatedEventDate === undefined || isDate(action.relatedEventDate)) &&
     (action.deadlineType === undefined || isEnum(ACTION_DEADLINE_TYPES, action.deadlineType)) && isEnum(ACTION_CATEGORIES, action.category) &&
     isEnum(ACTION_URGENCIES, action.urgency) && typeof action.confidence === "number" && Number.isFinite(action.confidence) && action.confidence >= 0 && action.confidence <= 1 &&

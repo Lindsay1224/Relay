@@ -6,6 +6,7 @@ export const EVIDENCE_RETENTION_DAYS = 396;
 export const MAX_ACTION_TITLE_LENGTH = 240;
 export const MAX_ACTION_DESCRIPTION_LENGTH = 700;
 export const MAX_EVIDENCE_LENGTH = 240;
+export const MAX_ACTION_RESPONSIBLE_LENGTH = 120;
 
 export function windowFrom(now = new Date()) {
   return {
