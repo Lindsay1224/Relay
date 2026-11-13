@@ -2,6 +2,7 @@ import { gmailConnection, saveGmailConnection } from "../../lib/firestore.js";
 import { evidenceExpiry } from "../../lib/policies.js";
 import { getDocument, incrementDocument, setDocument } from "../../lib/platform.js";
 import { calendarEventId, type CalendarEvent } from "./calendar-stage.js";
+import { makeMessageDecision, type MessageDecisionDisposition } from "../../lib/message-decision.js";
 import type { SettledStatus, WorkerTask } from "./worker-contracts.js";
 
 type CalendarEvidence = { sender: string; subject: string; receivedAt: string; excerpt: string; threadId: string };
@@ -21,6 +22,12 @@ export async function persistCalendarEvents(uid: string, events: CalendarEvent[]
 
 export async function persistCanonicalMessage(uid: string, message: Record<string, unknown>) {
   await setDocument(`users/${uid}/messages/${encodeURIComponent(String(message.gmailMessageId))}`, message);
+}
+
+export async function persistMessageDecision(uid: string, input: { messageId: string; threadId?: string; disposition: MessageDecisionDisposition; sanitizedReason: string; relevanceScore?: number; policyVersion: string; now?: Date }) {
+  const decision = makeMessageDecision(input);
+  await setDocument(`users/${uid}/messageDecisions/${encodeURIComponent(input.messageId)}`, decision);
+  return decision;
 }
 
 export async function settleTask(task: WorkerTask, status: SettledStatus) {
